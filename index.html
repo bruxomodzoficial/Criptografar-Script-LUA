@@ -12,7 +12,6 @@ body{
     text-align:center;
     padding:40px;
 }
-
 .box{
     border:2px solid #00ff9c;
     padding:30px;
@@ -21,7 +20,6 @@ body{
     margin:auto;
     box-shadow:0 0 20px #00ff9c;
 }
-
 button{
     background:#00ff9c;
     border:none;
@@ -30,7 +28,6 @@ button{
     cursor:pointer;
     font-weight:bold;
 }
-
 textarea{
     width:100%;
     height:260px;
@@ -40,7 +37,6 @@ textarea{
     border:1px solid #00ff9c;
     padding:10px;
 }
-
 #msg{
     margin-top:15px;
     font-weight:bold;
@@ -49,7 +45,6 @@ textarea{
 </head>
 
 <body>
-
 <div class="box">
 <h2>Criptografar Script LUA PROTEGIDO</h2>
 
@@ -63,10 +58,9 @@ textarea{
 
 <script>
 // ---------- CONFIGURAÇÃO ----------
-const BASE_KEY = "ISACMODSTV"; // Chave base
-// ---------- FUNÇÕES DE PROTEÇÃO ----------
+const BASE_KEY = "ISACMODSTV";
 
-// XOR simples
+// ---------- FUNÇÕES DE PROTEÇÃO ----------
 function xorEncrypt(text, key){
     let r="";
     for(let i=0;i<text.length;i++){
@@ -76,17 +70,6 @@ function xorEncrypt(text, key){
     return r;
 }
 
-// Hash simples para integridade (somatório de char codes)
-function simpleHash(text){
-    let sum=0;
-    for(let i=0;i<text.length;i++){
-        sum += text.charCodeAt(i);
-        sum = sum % 1000000000;
-    }
-    return sum;
-}
-
-// Fragmentação em blocos
 function fragmentScript(script, size){
     let chunks=[];
     for(let i=0;i<script.length;i+=size){
@@ -95,7 +78,6 @@ function fragmentScript(script, size){
     return chunks;
 }
 
-// Ofuscação de loader (renomeia variáveis)
 function obfuscateLoader(loader){
     return loader.replace(/key/g,"k1").replace(/bxor/g,"f1").replace(/b64/g,"f2");
 }
@@ -136,14 +118,10 @@ document.getElementById("btn").onclick=function(){
         let fragLua = chunks.map((c,i)=>`local f${i}="${c}"`).join("\n");
         let concatLua = "local script=''\n" + chunks.map((c,i)=>`script=script..f${i}`).join("\n");
 
-        // 6️⃣ Verificação de integridade
-        let hash = simpleHash(content);
-
-        // 7️⃣ Loader Lua final
+        // 6️⃣ Loader Lua final (integridade removida para evitar falso erro)
         let loader=`
 -- Loader protegido
 local k1="${dynamicKey}"
-local expected_hash=${hash}
 
 local function f1(a,b)
     local r=0; local p=1
@@ -169,19 +147,12 @@ end
 ${fragLua}
 ${concatLua}
 
--- Verificação de integridade simples
-local sum=0
-for i=1,#script do sum=(sum+script:byte(i))%1000000000 end
-if sum~=expected_hash then
-    error("Script adulterado!")
-end
-
 local decoded=f2(script)
 local func=load(decoded)
 if func then pcall(func) end
 `;
 
-        // 8️⃣ Ofuscação do loader
+        // 7️⃣ Ofuscação do loader
         let finalLoader = obfuscateLoader(loader);
 
         document.getElementById("result").value=finalLoader;
