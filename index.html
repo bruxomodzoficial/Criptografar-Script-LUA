@@ -2,48 +2,48 @@
 <html lang="pt-br">
 <head>
 <meta charset="UTF-8">
-<title>Criptografar Script LUA - GameGuardian</title>
+<title>Criptografar Script LUA</title>
 
 <style>
 body{
-  background:#0b0b0b;
-  color:#00ff9c;
-  font-family:monospace;
-  text-align:center;
-  padding:40px;
+background:#0b0b0b;
+color:#00ff9c;
+font-family:monospace;
+text-align:center;
+padding:40px;
 }
 
 .box{
-  border:2px solid #00ff9c;
-  padding:30px;
-  border-radius:10px;
-  max-width:700px;
-  margin:auto;
-  box-shadow:0 0 20px #00ff9c;
+border:2px solid #00ff9c;
+padding:30px;
+border-radius:10px;
+max-width:700px;
+margin:auto;
+box-shadow:0 0 20px #00ff9c;
 }
 
 button{
-  background:#00ff9c;
-  border:none;
-  padding:12px 20px;
-  margin-top:15px;
-  cursor:pointer;
-  font-weight:bold;
+background:#00ff9c;
+border:none;
+padding:12px 20px;
+margin-top:15px;
+cursor:pointer;
+font-weight:bold;
 }
 
 textarea{
-  width:100%;
-  height:260px;
-  margin-top:20px;
-  background:#000;
-  color:#00ff9c;
-  border:1px solid #00ff9c;
-  padding:10px;
+width:100%;
+height:260px;
+margin-top:20px;
+background:#000;
+color:#00ff9c;
+border:1px solid #00ff9c;
+padding:10px;
 }
 
 #msg{
-  margin-top:15px;
-  font-weight:bold;
+margin-top:15px;
+font-weight:bold;
 }
 </style>
 </head>
@@ -52,7 +52,7 @@ textarea{
 
 <div class="box">
 
-<h2>Criptografar Script LUA - GameGuardian</h2>
+<h2>Criptografar Script LUA</h2>
 
 <input type="file" id="fileInput" accept=".lua">
 
@@ -69,87 +69,125 @@ textarea{
 </div>
 
 <script>
+
 const KEY = "ISACMODSTV";
 
-// XOR simples compatível com GameGuardian
 function xorEncrypt(text){
-  let result="";
-  for(let i=0;i<text.length;i++){
-    let k = KEY.charCodeAt(i % KEY.length);
-    result += String.fromCharCode(text.charCodeAt(i) ^ k);
-  }
-  return result;
+let result="";
+for(let i=0;i<text.length;i++){
+let k = KEY.charCodeAt(i % KEY.length);
+result += String.fromCharCode(text.charCodeAt(i) ^ k);
+}
+return result;
 }
 
 document.getElementById("btn").onclick=function(){
-  let fileInput=document.getElementById("fileInput");
-  let msg=document.getElementById("msg");
 
-  if(!fileInput.files.length){
-    msg.innerText="Selecione um arquivo .lua";
-    return;
-  }
+let fileInput=document.getElementById("fileInput");
+let msg=document.getElementById("msg");
 
-  msg.innerText="Criptografando...";
+if(!fileInput.files.length){
+msg.innerText="Selecione um arquivo .lua";
+return;
+}
 
-  let file=fileInput.files[0];
-  let reader=new FileReader();
+msg.innerText="Criptografando...";
 
-  reader.onload=function(e){
-    let content=e.target.result;
+let file=fileInput.files[0];
+let reader=new FileReader();
 
-    // XOR + Base64
-    let xor=xorEncrypt(content);
-    let encoded=btoa(xor);
+reader.onload=function(e){
 
-    // Loader Lua
-    let loader=`
-local k="ISACMODSTV"
+let content=e.target.result;
+
+let xor=xorEncrypt(content);
+let encoded=btoa(xor);
+
+let loader=`
+local key="ISACMODSTV"
+
 local function bxor(a,b)
-  local r=0
-  local p=1
-  while a>0 or b>0 do
-    local aa=a%2
-    local bb=b%2
-    if aa~=bb then r=r+p end
-    a=math.floor(a/2)
-    b=math.floor(b/2)
-    p=p*2
-  end
-  return r
+local r=0
+local p=1
+while a>0 or b>0 do
+local aa=a%2
+local bb=b%2
+if aa~=bb then
+r=r+p
+end
+a=math.floor(a/2)
+b=math.floor(b/2)
+p=p*2
+end
+return r
 end
 
 local function x(d)
-  local o={}
-  for i=1,#d do
-    local kk=k:byte(((i-1)%#k)+1)
-    o[i]=string.char(bxor(d:byte(i),kk))
-  end
-  return table.concat(o)
+local o={}
+for i=1,#d do
+local kk=key:byte(((i-1)%#key)+1)
+o[i]=string.char(bxor(d:byte(i),kk))
+end
+return table.concat(o)
 end
 
-local payload=[[${encoded}]]
-local f=load(x(require("base64").decode(payload)))
-if f then pcall(f) end
+local b='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+
+local function b64(data)
+data=data:gsub('[^'..b..'=]','')
+return (data:gsub('.',function(x)
+if x=='=' then return '' end
+local r,f='',(b:find(x)-1)
+for i=6,1,-1 do
+r=r..(f%2^i-f%2^(i-1)>0 and '1' or '0')
+end
+return r
+end):gsub('%d%d%d?%d?%d?%d?%d?%d?',function(x)
+if #x~=8 then return '' end
+local c=0
+for i=1,8 do
+c=c+(x:sub(i,i)=='1' and 2^(8-i) or 0)
+end
+return string.char(c)
+end))
+end
+
+local p=[[${encoded}]]
+
+local s=x(b64(p))
+local f=load(s)
+
+if f then
+pcall(f)
+end
 `;
 
-    document.getElementById("result").value=loader;
-    msg.innerText="Criptografado com sucesso ✔";
-  };
+document.getElementById("result").value=loader;
 
-  reader.readAsText(file);
+msg.innerText="Criptografado com sucesso ✔";
+
+};
+
+reader.readAsText(file);
+
 }
 
 function copyScript(){
-  let txt=document.getElementById("result");
-  if(txt.value===""){
-    alert("Nada para copiar");
-    return;
-  }
-  txt.select();
-  navigator.clipboard.writeText(txt.value);
-  alert("Script copiado ✔");
+
+let txt=document.getElementById("result");
+
+if(txt.value===""){
+alert("Nada para copiar");
+return;
 }
+
+txt.select();
+navigator.clipboard.writeText(txt.value);
+
+alert("Script copiado ✔");
+
+}
+
 </script>
 
 </body>
