@@ -2,44 +2,48 @@
 <html lang="pt-br">
 <head>
 <meta charset="UTF-8">
-<title>Criptografar Script LUA Ultra Protegido</title>
+<title>Criptografar Script LUA Seguro</title>
 
 <style>
 body{
-background:#0b0b0b;
-color:#00ff9c;
-font-family:monospace;
-text-align:center;
-padding:40px;
+  background:#0b0b0b;
+  color:#00ff9c;
+  font-family:monospace;
+  text-align:center;
+  padding:40px;
 }
+
 .box{
-border:2px solid #00ff9c;
-padding:30px;
-border-radius:10px;
-max-width:700px;
-margin:auto;
-box-shadow:0 0 20px #00ff9c;
+  border:2px solid #00ff9c;
+  padding:30px;
+  border-radius:10px;
+  max-width:700px;
+  margin:auto;
+  box-shadow:0 0 20px #00ff9c;
 }
+
 button{
-background:#00ff9c;
-border:none;
-padding:12px 20px;
-margin-top:15px;
-cursor:pointer;
-font-weight:bold;
+  background:#00ff9c;
+  border:none;
+  padding:12px 20px;
+  margin-top:15px;
+  cursor:pointer;
+  font-weight:bold;
 }
+
 textarea{
-width:100%;
-height:260px;
-margin-top:20px;
-background:#000;
-color:#00ff9c;
-border:1px solid #00ff9c;
-padding:10px;
+  width:100%;
+  height:260px;
+  margin-top:20px;
+  background:#000;
+  color:#00ff9c;
+  border:1px solid #00ff9c;
+  padding:10px;
 }
+
 #msg{
-margin-top:15px;
-font-weight:bold;
+  margin-top:15px;
+  font-weight:bold;
 }
 </style>
 </head>
@@ -48,157 +52,145 @@ font-weight:bold;
 
 <div class="box">
 
-<h2>Criptografar Script LUA Ultra Protegido</h2>
+<h2>Criptografar Script LUA Seguro</h2>
 
 <input type="file" id="fileInput" accept=".lua">
+
 <br>
+
 <button id="btn">Criptografar</button>
+
 <div id="msg"></div>
+
 <textarea id="result" placeholder="Script criptografado aparecerá aqui"></textarea>
+
 <button onclick="copyScript()">Copiar Script</button>
+
 </div>
 
 <script>
+// Chave principal (ofuscada)
 const KEY = "ISACMODSTV";
 
-// Função XOR original
+// Função XOR com ofuscação extra
 function xorEncrypt(text){
-    let result="";
-    for(let i=0;i<text.length;i++){
-        let k = KEY.charCodeAt(i % KEY.length);
-        result += String.fromCharCode(text.charCodeAt(i) ^ k);
-    }
-    return result;
+  let result="";
+  for(let i=0;i<text.length;i++){
+    let k = KEY.charCodeAt(i % KEY.length) ^ 0x55; // XOR extra
+    result += String.fromCharCode(text.charCodeAt(i) ^ k);
+  }
+  return result;
 }
 
-// Fragmenta script em blocos
-function fragmentScript(script, size){
-    let chunks=[];
-    for(let i=0;i<script.length;i+=size){
-        chunks.push(script.slice(i,i+size));
-    }
-    return chunks;
-}
-
-// Ofusca loader (nomes de variáveis internas)
-function obfuscateLoader(loader){
-    return loader.replace(/bxor/g,"fX").replace(/x/g,"fY").replace(/b64/g,"fZ");
+// Função para embaralhar string (camada extra)
+function scramble(str){
+  return str.split('').map((c,i)=>String.fromCharCode(c.charCodeAt(0) ^ (i%5 + 1))).join('');
 }
 
 document.getElementById("btn").onclick=function(){
-    let fileInput=document.getElementById("fileInput");
-    let msg=document.getElementById("msg");
+  let fileInput=document.getElementById("fileInput");
+  let msg=document.getElementById("msg");
 
-    if(!fileInput.files.length){
-        msg.innerText="Selecione um arquivo .lua";
-        return;
-    }
+  if(!fileInput.files.length){
+    msg.innerText="Selecione um arquivo .lua";
+    return;
+  }
 
-    msg.innerText="Criptografando...";
+  msg.innerText="Criptografando...";
 
-    let file=fileInput.files[0];
-    let reader=new FileReader();
+  let file=fileInput.files[0];
+  let reader=new FileReader();
 
-    reader.onload=function(e){
-        let content=e.target.result;
+  reader.onload=function(e){
+    let content=e.target.result;
 
-        // XOR camada extra interna (chave temporária)
-        const tempKey = Date.now().toString();
-        let xor1 = xorEncrypt(content);
-        let xor2 = xorEncrypt(xor1 + tempKey);
+    // 1ª camada: XOR + embaralhamento
+    let xor=xorEncrypt(content);
+    let scrambled=scramble(xor);
 
-        // Base64
-        let encoded = btoa(xor2);
+    // 2ª camada: Base64 dupla
+    let encoded=btoa(btoa(scrambled));
 
-        // Fragmentação
-        let chunks = fragmentScript(encoded,50);
-        let fragLua = chunks.map((c,i)=>`local f${i}="${c}"`).join("\n");
-        let concatLua = "local script=''\n" + chunks.map((c,i)=>`script=script..f${i}`).join("\n");
-
-        // Loader Lua ultra protegido
-        let loader=`
-local key="ISACMODSTV"
-local tempKey="${tempKey}"
-
+    // Loader final
+    let loader=`
+local k="ISACMODSTV"
 local function bxor(a,b)
-local r=0
-local p=1
-while a>0 or b>0 do
-local aa=a%2
-local bb=b%2
-if aa~=bb then r=r+p end
-a=math.floor(a/2)
-b=math.floor(b/2)
-p=p*2
-end
-return r
-end
-
-local function x(d,k)
-local o={}
-for i=1,#d do
-local kk=k:byte(((i-1)%#k)+1)
-o[i]=string.char(bxor(d:byte(i),kk))
-end
-return table.concat(o)
+  local r=0
+  local p=1
+  while a>0 or b>0 do
+    local aa=a%2
+    local bb=b%2
+    if aa~=bb then r=r+p end
+    a=math.floor(a/2)
+    b=math.floor(b/2)
+    p=p*2
+  end
+  return r
 end
 
-local b='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
-
-local function b64(data)
-data=data:gsub('[^'..b..'=]','')
-return (data:gsub('.',function(x)
-if x=='=' then return '' end
-local r,f='',(b:find(x)-1)
-for i=6,1,-1 do
-r=r..(f%2^i-f%2^(i-1)>0 and '1' or '0')
-end
-return r
-end):gsub('%d%d%d?%d?%d?%d?%d?%d?',function(x)
-if #x~=8 then return '' end
-local c=0
-for i=1,8 do
-c=c+(x:sub(i,i)=='1' and 2^(8-i) or 0)
-end
-return string.char(c)
-end))
+local function unxor(s)
+  local o={}
+  for i=1,#s do
+    local kk=(k:byte(((i-1)%#k)+1) ~ 0x55)
+    o[i]=string.char(bxor(s:byte(i),kk))
+  end
+  return table.concat(o)
 end
 
-${fragLua}
-${concatLua}
+local function unscramble(s)
+  local o={}
+  for i=1,#s do
+    o[i]=string.char(bxor(s:byte(i),(i-1)%5 +1))
+  end
+  return table.concat(o)
+end
 
--- Descriptografia camada dupla
-local decoded = x(x(b64(script), tempKey), key)
+local function dblb64decode(d)
+  local b='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+  local function decode64(data)
+    data=data:gsub('[^'..b..'=]','')
+    return (data:gsub('.',function(x)
+      if x=='=' then return '' end
+      local r,f='',(b:find(x)-1)
+      for i=6,1,-1 do
+        r=r..(f%2^i-f%2^(i-1)>0 and '1' or '0')
+      end
+      return r
+    end):gsub('%d%d%d?%d?%d?%d?%d?%d?',function(x)
+      if #x~=8 then return '' end
+      local c=0
+      for i=1,8 do c=c+(x:sub(i,i)=='1' and 2^(8-i) or 0) end
+      return string.char(c)
+    end))
+  end
+  return decode64(decode64(d))
+end
 
--- Anti-debug básico
-local mt = getmetatable(_G) or {}
-mt.__index = function() error("Não pode acessar") end
-debug.setmetatable(_G, mt)
+local payload=[[${encoded}]]
 
-local f = load(decoded)
+local code=unxor(unscramble(dblb64decode(payload)))
+local f=load(code)
 if f then pcall(f) end
 `;
 
-        // Ofusca loader
-        let finalLoader = obfuscateLoader(loader);
+    document.getElementById("result").value=loader;
+    msg.innerText="Criptografado com sucesso ✔";
+  };
 
-        document.getElementById("result").value=finalLoader;
-        msg.innerText="Criptografado com sucesso ✔";
-    };
-
-    reader.readAsText(file);
+  reader.readAsText(file);
 }
 
 function copyScript(){
-    let txt=document.getElementById("result");
-    if(txt.value===""){
-        alert("Nada para copiar");
-        return;
-    }
-    txt.select();
-    navigator.clipboard.writeText(txt.value);
-    alert("Script copiado ✔");
+  let txt=document.getElementById("result");
+  if(txt.value===""){
+    alert("Nada para copiar");
+    return;
+  }
+  txt.select();
+  navigator.clipboard.writeText(txt.value);
+  alert("Script copiado ✔");
 }
 </script>
+
 </body>
 </html>
