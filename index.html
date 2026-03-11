@@ -2,8 +2,7 @@
 <html lang="pt-br">
 <head>
 <meta charset="UTF-8">
-<title>Criptografar Script LUA Protegido</title>
-
+<title>Criptografar Script LUA Ultra Protegido</title>
 <style>
 body{
     background:#0b0b0b;
@@ -43,10 +42,10 @@ textarea{
 }
 </style>
 </head>
-
 <body>
+
 <div class="box">
-<h2>Criptografar Script LUA PROTEGIDO</h2>
+<h2>Criptografar Script LUA Ultra Protegido</h2>
 
 <input type="file" id="fileInput" accept=".lua">
 <br>
@@ -60,8 +59,8 @@ textarea{
 // ---------- CONFIGURAÇÃO ----------
 const BASE_KEY = "ISACMODSTV";
 
-// ---------- FUNÇÕES DE PROTEÇÃO ----------
-function xorEncrypt(text, key){
+// ---------- FUNÇÕES DE CRIPTOGRAFIA ----------
+function xorEncrypt(text,key){
     let r="";
     for(let i=0;i<text.length;i++){
         let k = key.charCodeAt(i % key.length);
@@ -70,12 +69,18 @@ function xorEncrypt(text, key){
     return r;
 }
 
-function fragmentScript(script, size){
+// Fragmenta script em blocos para dificultar leitura
+function fragmentScript(script,size){
     let chunks=[];
     for(let i=0;i<script.length;i+=size){
         chunks.push(script.slice(i,i+size));
     }
     return chunks;
+}
+
+// Ofuscação simples do loader
+function obfuscateLoader(loader){
+    return loader.replace(/key/g,"k1").replace(/bxor/g,"f1").replace(/decodeXOR/g,"fx");
 }
 
 // ---------- PROCESSO DE CRIPTOGRAFIA ----------
@@ -103,21 +108,20 @@ document.getElementById("btn").onclick=function(){
         // 2️⃣ XOR camada 1
         let xor1 = xorEncrypt(content, BASE_KEY);
 
-        // 3️⃣ XOR camada 2 (chave dinâmica)
+        // 3️⃣ XOR camada 2
         let xor2 = xorEncrypt(xor1, dynamicKey);
 
         // 4️⃣ Base64
         let encoded = btoa(xor2);
 
         // 5️⃣ Fragmentação
-        let chunks = fragmentScript(encoded, 50);
-        // fragmentos são apenas strings f0, f1, f2...
+        let chunks = fragmentScript(encoded,50);
         let fragLua = chunks.map((c,i)=>`local f${i}="${c}"`).join("\n");
         let concatLua = "local script=''\n" + chunks.map((c,i)=>`script=script..f${i}`).join("\n");
 
-        // 6️⃣ Loader Lua final corrigido
+        // 6️⃣ Loader Lua ultra protegido
         let loader=`
--- Loader protegido
+-- Loader Lua ultra protegido
 local k1="${dynamicKey}"
 
 local function f1(a,b)
@@ -141,15 +145,24 @@ local function decodeXOR(d)
     return table.concat(o)
 end
 
+-- Fragmentos do script
 ${fragLua}
 ${concatLua}
 
-local decoded=decodeXOR(script)
-local func=load(decoded)
+-- Anti-debug: trava se tentar reabrir funs internas
+local mt = getmetatable(_G) or {}
+mt.__index = function() error("Não pode acessar") end
+debug.setmetatable(_G, mt)
+
+local decoded = decodeXOR(script)
+local func = load(decoded)
 if func then pcall(func) end
 `;
 
-        document.getElementById("result").value=loader;
+        // 7️⃣ Ofuscação do loader
+        let finalLoader = obfuscateLoader(loader);
+
+        document.getElementById("result").value=finalLoader;
         msg.innerText="Criptografado com sucesso ✔";
     };
 
