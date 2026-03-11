@@ -78,10 +78,6 @@ function fragmentScript(script, size){
     return chunks;
 }
 
-function obfuscateLoader(loader){
-    return loader.replace(/key/g,"k1").replace(/bxor/g,"f1").replace(/b64/g,"f2");
-}
-
 // ---------- PROCESSO DE CRIPTOGRAFIA ----------
 document.getElementById("btn").onclick=function(){
     let fileInput=document.getElementById("fileInput");
@@ -115,10 +111,11 @@ document.getElementById("btn").onclick=function(){
 
         // 5️⃣ Fragmentação
         let chunks = fragmentScript(encoded, 50);
+        // fragmentos são apenas strings f0, f1, f2...
         let fragLua = chunks.map((c,i)=>`local f${i}="${c}"`).join("\n");
         let concatLua = "local script=''\n" + chunks.map((c,i)=>`script=script..f${i}`).join("\n");
 
-        // 6️⃣ Loader Lua final (integridade removida para evitar falso erro)
+        // 6️⃣ Loader Lua final corrigido
         let loader=`
 -- Loader protegido
 local k1="${dynamicKey}"
@@ -135,7 +132,7 @@ local function f1(a,b)
     return r
 end
 
-local function f2(d)
+local function decodeXOR(d)
     local o={}
     for i=1,#d do
         local kk=k1:byte(((i-1)%#k1)+1)
@@ -147,15 +144,12 @@ end
 ${fragLua}
 ${concatLua}
 
-local decoded=f2(script)
+local decoded=decodeXOR(script)
 local func=load(decoded)
 if func then pcall(func) end
 `;
 
-        // 7️⃣ Ofuscação do loader
-        let finalLoader = obfuscateLoader(loader);
-
-        document.getElementById("result").value=finalLoader;
+        document.getElementById("result").value=loader;
         msg.innerText="Criptografado com sucesso ✔";
     };
 
