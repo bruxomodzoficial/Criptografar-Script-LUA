@@ -2,7 +2,7 @@
 <html lang="pt-br">
 <head>
 <meta charset="UTF-8">
-<title>Criptografar Script LUA Seguro</title>
+<title>Criptografar Script LUA - GameGuardian</title>
 
 <style>
 body{
@@ -52,7 +52,7 @@ textarea{
 
 <div class="box">
 
-<h2>Criptografar Script LUA Seguro</h2>
+<h2>Criptografar Script LUA - GameGuardian</h2>
 
 <input type="file" id="fileInput" accept=".lua">
 
@@ -69,22 +69,16 @@ textarea{
 </div>
 
 <script>
-// Chave principal (ofuscada)
 const KEY = "ISACMODSTV";
 
-// Função XOR com ofuscação extra
+// XOR simples compatível com GameGuardian
 function xorEncrypt(text){
   let result="";
   for(let i=0;i<text.length;i++){
-    let k = KEY.charCodeAt(i % KEY.length) ^ 0x55; // XOR extra
+    let k = KEY.charCodeAt(i % KEY.length);
     result += String.fromCharCode(text.charCodeAt(i) ^ k);
   }
   return result;
-}
-
-// Função para embaralhar string (camada extra)
-function scramble(str){
-  return str.split('').map((c,i)=>String.fromCharCode(c.charCodeAt(0) ^ (i%5 + 1))).join('');
 }
 
 document.getElementById("btn").onclick=function(){
@@ -104,14 +98,11 @@ document.getElementById("btn").onclick=function(){
   reader.onload=function(e){
     let content=e.target.result;
 
-    // 1ª camada: XOR + embaralhamento
+    // XOR + Base64
     let xor=xorEncrypt(content);
-    let scrambled=scramble(xor);
+    let encoded=btoa(xor);
 
-    // 2ª camada: Base64 dupla
-    let encoded=btoa(btoa(scrambled));
-
-    // Loader final
+    // Loader Lua
     let loader=`
 local k="ISACMODSTV"
 local function bxor(a,b)
@@ -128,48 +119,17 @@ local function bxor(a,b)
   return r
 end
 
-local function unxor(s)
+local function x(d)
   local o={}
-  for i=1,#s do
-    local kk=(k:byte(((i-1)%#k)+1) ~ 0x55)
-    o[i]=string.char(bxor(s:byte(i),kk))
+  for i=1,#d do
+    local kk=k:byte(((i-1)%#k)+1)
+    o[i]=string.char(bxor(d:byte(i),kk))
   end
   return table.concat(o)
-end
-
-local function unscramble(s)
-  local o={}
-  for i=1,#s do
-    o[i]=string.char(bxor(s:byte(i),(i-1)%5 +1))
-  end
-  return table.concat(o)
-end
-
-local function dblb64decode(d)
-  local b='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
-  local function decode64(data)
-    data=data:gsub('[^'..b..'=]','')
-    return (data:gsub('.',function(x)
-      if x=='=' then return '' end
-      local r,f='',(b:find(x)-1)
-      for i=6,1,-1 do
-        r=r..(f%2^i-f%2^(i-1)>0 and '1' or '0')
-      end
-      return r
-    end):gsub('%d%d%d?%d?%d?%d?%d?%d?',function(x)
-      if #x~=8 then return '' end
-      local c=0
-      for i=1,8 do c=c+(x:sub(i,i)=='1' and 2^(8-i) or 0) end
-      return string.char(c)
-    end))
-  end
-  return decode64(decode64(d))
 end
 
 local payload=[[${encoded}]]
-
-local code=unxor(unscramble(dblb64decode(payload)))
-local f=load(code)
+local f=load(x(require("base64").decode(payload)))
 if f then pcall(f) end
 `;
 
