@@ -2,48 +2,48 @@
 <html lang="pt-br">
 <head>
 <meta charset="UTF-8">
-<title>Criptografar Script LUA</title>
+<title>Criptografar Script LUA Protegido</title>
 
 <style>
 body{
-background:#0b0b0b;
-color:#00ff9c;
-font-family:monospace;
-text-align:center;
-padding:40px;
+    background:#0b0b0b;
+    color:#00ff9c;
+    font-family:monospace;
+    text-align:center;
+    padding:40px;
 }
 
 .box{
-border:2px solid #00ff9c;
-padding:30px;
-border-radius:10px;
-max-width:700px;
-margin:auto;
-box-shadow:0 0 20px #00ff9c;
+    border:2px solid #00ff9c;
+    padding:30px;
+    border-radius:10px;
+    max-width:700px;
+    margin:auto;
+    box-shadow:0 0 20px #00ff9c;
 }
 
 button{
-background:#00ff9c;
-border:none;
-padding:12px 20px;
-margin-top:15px;
-cursor:pointer;
-font-weight:bold;
+    background:#00ff9c;
+    border:none;
+    padding:12px 20px;
+    margin-top:15px;
+    cursor:pointer;
+    font-weight:bold;
 }
 
 textarea{
-width:100%;
-height:260px;
-margin-top:20px;
-background:#000;
-color:#00ff9c;
-border:1px solid #00ff9c;
-padding:10px;
+    width:100%;
+    height:260px;
+    margin-top:20px;
+    background:#000;
+    color:#00ff9c;
+    border:1px solid #00ff9c;
+    padding:10px;
 }
 
 #msg{
-margin-top:15px;
-font-weight:bold;
+    margin-top:15px;
+    font-weight:bold;
 }
 </style>
 </head>
@@ -51,144 +51,156 @@ font-weight:bold;
 <body>
 
 <div class="box">
-
-<h2>Criptografar Script LUA</h2>
+<h2>Criptografar Script LUA PROTEGIDO</h2>
 
 <input type="file" id="fileInput" accept=".lua">
-
 <br>
-
 <button id="btn">Criptografar</button>
-
 <div id="msg"></div>
-
 <textarea id="result" placeholder="Script criptografado aparecerá aqui"></textarea>
-
 <button onclick="copyScript()">Copiar Script</button>
-
 </div>
 
 <script>
+// ---------- CONFIGURAÇÃO ----------
+const BASE_KEY = "ISACMODSTV"; // Chave base
+// ---------- FUNÇÕES DE PROTEÇÃO ----------
 
-const KEY = "ISACMODSTV";
-
-function xorEncrypt(text){
-let result="";
-for(let i=0;i<text.length;i++){
-let k = KEY.charCodeAt(i % KEY.length);
-result += String.fromCharCode(text.charCodeAt(i) ^ k);
+// XOR simples
+function xorEncrypt(text, key){
+    let r="";
+    for(let i=0;i<text.length;i++){
+        let k = key.charCodeAt(i % key.length);
+        r += String.fromCharCode(text.charCodeAt(i) ^ k);
+    }
+    return r;
 }
-return result;
+
+// Hash simples para integridade (somatório de char codes)
+function simpleHash(text){
+    let sum=0;
+    for(let i=0;i<text.length;i++){
+        sum += text.charCodeAt(i);
+        sum = sum % 1000000000;
+    }
+    return sum;
 }
 
+// Fragmentação em blocos
+function fragmentScript(script, size){
+    let chunks=[];
+    for(let i=0;i<script.length;i+=size){
+        chunks.push(script.slice(i,i+size));
+    }
+    return chunks;
+}
+
+// Ofuscação de loader (renomeia variáveis)
+function obfuscateLoader(loader){
+    return loader.replace(/key/g,"k1").replace(/bxor/g,"f1").replace(/b64/g,"f2");
+}
+
+// ---------- PROCESSO DE CRIPTOGRAFIA ----------
 document.getElementById("btn").onclick=function(){
+    let fileInput=document.getElementById("fileInput");
+    let msg=document.getElementById("msg");
 
-let fileInput=document.getElementById("fileInput");
-let msg=document.getElementById("msg");
+    if(!fileInput.files.length){
+        msg.innerText="Selecione um arquivo .lua";
+        return;
+    }
 
-if(!fileInput.files.length){
-msg.innerText="Selecione um arquivo .lua";
-return;
-}
+    msg.innerText="Criptografando...";
 
-msg.innerText="Criptografando...";
+    let file=fileInput.files[0];
+    let reader=new FileReader();
 
-let file=fileInput.files[0];
-let reader=new FileReader();
+    reader.onload=function(e){
+        let content=e.target.result;
 
-reader.onload=function(e){
+        // 1️⃣ Chave dinâmica baseada em timestamp
+        let timestamp = Date.now().toString();
+        let dynamicKey = BASE_KEY + timestamp;
 
-let content=e.target.result;
+        // 2️⃣ XOR camada 1
+        let xor1 = xorEncrypt(content, BASE_KEY);
 
-let xor=xorEncrypt(content);
-let encoded=btoa(xor);
+        // 3️⃣ XOR camada 2 (chave dinâmica)
+        let xor2 = xorEncrypt(xor1, dynamicKey);
 
-let loader=`
-local key="ISACMODSTV"
+        // 4️⃣ Base64
+        let encoded = btoa(xor2);
 
-local function bxor(a,b)
-local r=0
-local p=1
-while a>0 or b>0 do
-local aa=a%2
-local bb=b%2
-if aa~=bb then
-r=r+p
-end
-a=math.floor(a/2)
-b=math.floor(b/2)
-p=p*2
-end
-return r
-end
+        // 5️⃣ Fragmentação
+        let chunks = fragmentScript(encoded, 50);
+        let fragLua = chunks.map((c,i)=>`local f${i}="${c}"`).join("\n");
+        let concatLua = "local script=''\n" + chunks.map((c,i)=>`script=script..f${i}`).join("\n");
 
-local function x(d)
-local o={}
-for i=1,#d do
-local kk=key:byte(((i-1)%#key)+1)
-o[i]=string.char(bxor(d:byte(i),kk))
-end
-return table.concat(o)
-end
+        // 6️⃣ Verificação de integridade
+        let hash = simpleHash(content);
 
-local b='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+        // 7️⃣ Loader Lua final
+        let loader=`
+-- Loader protegido
+local k1="${dynamicKey}"
+local expected_hash=${hash}
 
-local function b64(data)
-data=data:gsub('[^'..b..'=]','')
-return (data:gsub('.',function(x)
-if x=='=' then return '' end
-local r,f='',(b:find(x)-1)
-for i=6,1,-1 do
-r=r..(f%2^i-f%2^(i-1)>0 and '1' or '0')
-end
-return r
-end):gsub('%d%d%d?%d?%d?%d?%d?%d?',function(x)
-if #x~=8 then return '' end
-local c=0
-for i=1,8 do
-c=c+(x:sub(i,i)=='1' and 2^(8-i) or 0)
-end
-return string.char(c)
-end))
+local function f1(a,b)
+    local r=0; local p=1
+    while a>0 or b>0 do
+        local aa=a%2; local bb=b%2
+        if aa~=bb then r=r+p end
+        a=math.floor(a/2)
+        b=math.floor(b/2)
+        p=p*2
+    end
+    return r
 end
 
-local p=[[${encoded}]]
-
-local s=x(b64(p))
-local f=load(s)
-
-if f then
-pcall(f)
+local function f2(d)
+    local o={}
+    for i=1,#d do
+        local kk=k1:byte(((i-1)%#k1)+1)
+        o[i]=string.char(f1(d:byte(i),kk))
+    end
+    return table.concat(o)
 end
+
+${fragLua}
+${concatLua}
+
+-- Verificação de integridade simples
+local sum=0
+for i=1,#script do sum=(sum+script:byte(i))%1000000000 end
+if sum~=expected_hash then
+    error("Script adulterado!")
+end
+
+local decoded=f2(script)
+local func=load(decoded)
+if func then pcall(func) end
 `;
 
-document.getElementById("result").value=loader;
+        // 8️⃣ Ofuscação do loader
+        let finalLoader = obfuscateLoader(loader);
 
-msg.innerText="Criptografado com sucesso ✔";
+        document.getElementById("result").value=finalLoader;
+        msg.innerText="Criptografado com sucesso ✔";
+    };
 
-};
-
-reader.readAsText(file);
-
+    reader.readAsText(file);
 }
 
 function copyScript(){
-
-let txt=document.getElementById("result");
-
-if(txt.value===""){
-alert("Nada para copiar");
-return;
+    let txt=document.getElementById("result");
+    if(txt.value===""){
+        alert("Nada para copiar");
+        return;
+    }
+    txt.select();
+    navigator.clipboard.writeText(txt.value);
+    alert("Script copiado ✔");
 }
-
-txt.select();
-navigator.clipboard.writeText(txt.value);
-
-alert("Script copiado ✔");
-
-}
-
 </script>
-
 </body>
 </html>
