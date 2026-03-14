@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Busca Outfit IMVU</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    input { padding: 8px; margin-right: 10px; }
+    button { padding: 8px; }
+    #resultado { margin-top: 20px; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <h1>Pesquisar Outfit IMVU</h1>
+  <input type="text" id="username" placeholder="Digite o nome do usuário">
+  <button onclick="buscarOutfit()">Buscar</button>
+
+  <div id="resultado"></div>
+
+  <script>
+    async function buscarOutfit() {
+      const nome = document.getElementById("username").value;
+      if (!nome) {
+        document.getElementById("resultado").innerHTML = "Digite um nome de usuário.";
+        return;
+      }
+
+      try {
+        const resposta = await fetch(`/outfit?username=${nome}`);
+        const dados = await resposta.json();
+
+        if (dados.erro) {
+          document.getElementById("resultado").innerHTML = dados.erro;
+          return;
+        }
+
+        document.getElementById("resultado").innerHTML = `
+          <h2>Outfit de ${nome}</h2>
+          <pre>${JSON.stringify(dados, null, 2)}</pre>
+        `;
+      } catch (erro) {
+        document.getElementById("resultado").innerHTML = "Erro ao buscar usuário/outfit.";
+      }
+    }
+  </script>
+</body>
+</html>
